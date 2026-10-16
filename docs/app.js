@@ -10,7 +10,7 @@
   let requestNumber = 0;
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[char]));
   const current = () => state.study.steps.find(step => step.id === state.section);
-  const firstReading = study => study.steps.find(step => step.kind === 'discussion')?.id || study.steps[0].id;
+  const firstSection = study => study.steps[0].id;
 
   function localURL(path) {
     const url = new URL(path, base);
@@ -272,7 +272,7 @@
       }
       const saved = state.preferences.progress[id]?.section;
       const requestedSection = route.get('section') || saved;
-      resetSection(state.study.steps.some(step => step.id === requestedSection) ? requestedSection : firstReading(state.study));
+      resetSection(state.study.steps.some(step => step.id === requestedSection) ? requestedSection : firstSection(state.study));
       history.replaceState(null, '', studyLink(id, state.section));
       renderStudy();
       if (!state.esv.readings && !state.esv.loading) loadScripture();
