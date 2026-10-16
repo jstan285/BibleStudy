@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "studies": [
+    {
+      "id": "make-way-2026-10-11",
+      "title": "What We Were Made For",
+      "series": "Make Way",
+      "date": "2026-10-11",
+      "passage": "Genesis 3:1–10",
+      "file": "studies/make-way-2026-10-11.json",
+      "cover": "assets/make-way-2026-10-11.jpg"
+    }
+  ]
+}
