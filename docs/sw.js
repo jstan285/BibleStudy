@@ -1,10 +1,10 @@
 'use strict';
 // Increment this version when changing the application shell.
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const PREFIX = `bible-studies:${self.registration.scope}:`;
 const CACHE = `${PREFIX}${VERSION}`;
 const url = path => new URL(path, self.registration.scope).href;
-const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'assets/icon.svg', 'assets/icon-180.png', 'assets/icon-192.png', 'assets/icon-512.png', 'studies/index.json'];
+const SHELL = ['./', 'index.html', 'styles.css', 'config.js', 'app.js', 'manifest.webmanifest', 'assets/icon.svg', 'assets/icon-180.png', 'assets/icon-192.png', 'assets/icon-512.png', 'studies/index.json'];
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
@@ -25,7 +25,7 @@ self.addEventListener('activate', event => {
     for (const key of oldCaches) {
       const old = await caches.open(key);
       for (const request of await old.keys()) {
-        if (!(await cache.match(request)) && /\/(studies|assets)\//.test(new URL(request.url).pathname)) {
+        if (!(await cache.match(request)) && /\/assets\//.test(new URL(request.url).pathname)) {
           await cache.put(request, await old.match(request));
         }
       }

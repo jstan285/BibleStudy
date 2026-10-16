@@ -4,9 +4,9 @@
   const base = new URL('./', document.baseURI);
   const storageKey = `bible-studies:${base.pathname}:v1`;
   const views = ['library-view', 'study-view', 'error-view'];
-  const translations = [{id: 'web', abbreviation: 'WEB', name: 'World English Bible'}];
+  const esvApiBase = window.BIBLE_STUDY_CONFIG?.esvApiBase || '';
   const names = {read: 'Reading', discuss: 'Discussion'};
-  const state = {catalog: [], study: null, entry: null, section: '', focus: 'read', open: ['read'], hostOpen: false, together: false, preferences: {bibleVersion: 'web', progress: {}}};
+  const state = {catalog: [], study: null, entry: null, section: '', focus: 'read', open: ['read'], hostOpen: false, together: false, preferences: {progress: {}}, esv: {study: '', readings: null, loading: false, error: ''}};
   let requestNumber = 0;
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[char]));
   const current = () => state.study.steps.find(step => step.id === state.section);
@@ -26,14 +26,11 @@
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
       if (saved && typeof saved === 'object') {
-        state.preferences.bibleVersion = translations.some(item => item.id === saved.bibleVersion) ? saved.bibleVersion : 'web';
         if (saved.progress && typeof saved.progress === 'object' && !Array.isArray(saved.progress)) state.preferences.progress = saved.progress;
       }
     } catch {
       // A damaged preference must never prevent opening a study.
     }
-    $('bible-version').value = state.preferences.bibleVersion;
-    $('bible-version').title = translations.find(item => item.id === state.preferences.bibleVersion).name;
   }
 
   function savePreferences() {
@@ -75,25 +72,90 @@
   }
 
   function validateStudy(study, entry) {
-    if (study.schemaVersion !== 1 || study.id !== entry.id || !Array.isArray(study.steps) || !study.steps.length || !study.readings) throw new Error('This study’s content could not be read.');
+    if (study.schemaVersion !== 1 || study.id !== entry.id || !Array.isArray(study.steps) || !study.steps.length) throw new Error('This study’s content could not be read.');
     const ids = new Set();
     for (const step of study.steps) {
       if (typeof step.id !== 'string' || ids.has(step.id) || !['cover', 'text', 'discussion'].includes(step.kind)) throw new Error('This study contains an invalid section.');
       ids.add(step.id);
       if (step.kind !== 'discussion') continue;
       if (!Array.isArray(step.refs) || !step.refs.length || typeof step.question !== 'string' || typeof step.guidance !== 'string') throw new Error('A discussion section is incomplete.');
-      for (const ref of step.refs) {
-        const reading = study.readings[ref.replaceAll('–', '-')];
-        if (!Array.isArray(reading?.verses) || !reading.verses.length || reading.translation_id !== 'web') throw new Error('A Scripture passage is missing from this study.');
-      }
+      if (step.refs.some(ref => typeof ref !== 'string' || !ref.trim())) throw new Error('A Scripture reference is missing from this study.');
     }
   }
 
   function renderReadings(refs) {
+    if (state.esv.loading) return '<p class="scripture-message" role="status">Loading ESV passages…</p>';
+    if (!state.esv.readings) {
+      const links = refs.map(ref => `<a href="https://www.esv.org/${encodeURIComponent(ref)}/" target="_blank" rel="noopener noreferrer">${esc(ref)} on ESV.org ↗</a>`).join('');
+      return `<div class="scripture-message"><p>${esc(state.esv.error || 'Connect to load ESV passages.')}</p><button type="button" data-retry-esv>Try again</button><div class="scripture-links">${links}</div></div>`;
+    }
     return refs.map(ref => {
-      const reading = state.study.readings[ref.replaceAll('–', '-')];
-      return `<section class="reading-block"><h2>${esc(ref)} <span>(${esc(reading.translation_id.toUpperCase())})</span></h2>${reading.verses.map(verse => `<p><sup>${esc(verse.verse)}</sup> ${esc(verse.text)}</p>`).join('')}</section>`;
+      const reading = state.esv.readings[ref.replaceAll('–', '-')];
+      return `<section class="reading-block"><h2>${esc(ref)} <span>(ESV)</span></h2><div class="esv-passage">${sanitizeScripture(reading.html)}</div></section>`;
     }).join('');
+  }
+
+  function sanitizeScripture(html) {
+    const parsed = new DOMParser().parseFromString(html, 'text/html');
+    const allowed = new Set(['P','DIV','SPAN','SUP','B','STRONG','EM','I','SMALL','BR','H2','H3','H4','BLOCKQUOTE','A']);
+    const clean = node => {
+      if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent);
+      if (node.nodeType !== Node.ELEMENT_NODE || ['SCRIPT','STYLE','IFRAME','OBJECT','SVG'].includes(node.tagName)) return document.createDocumentFragment();
+      const output = allowed.has(node.tagName) ? document.createElement(node.tagName.toLowerCase()) : document.createDocumentFragment();
+      if (output.nodeType === Node.ELEMENT_NODE) {
+        if (node.className && /^[\w\s-]+$/.test(node.className)) output.className = node.className;
+        if (node.tagName === 'A') {
+          try {
+            const link = new URL(node.getAttribute('href'), 'https://www.esv.org/');
+            if (['esv.org','www.esv.org','api.esv.org','crossway.org','www.crossway.org'].includes(link.hostname) && ['http:','https:'].includes(link.protocol)) {
+              link.protocol = 'https:';
+              output.href = link.href;
+              output.target = '_blank';
+              output.rel = 'noopener noreferrer';
+            }
+          } catch { }
+        }
+      }
+      for (const child of node.childNodes) output.append(clean(child));
+      return output;
+    };
+    const container = document.createElement('div');
+    for (const child of parsed.body.childNodes) container.append(clean(child));
+    return container.innerHTML;
+  }
+
+  function refreshScripture() {
+    const pane = $('reading-pane');
+    if (!pane || !state.study || current().kind !== 'discussion') return;
+    pane.querySelector('.scripture-body').innerHTML = renderReadings(current().refs);
+  }
+
+  async function loadScripture() {
+    if (!state.study || state.esv.loading) return;
+    const id = state.study.id;
+    const pending = {study:id,readings:null,loading:true,error:''};
+    state.esv = pending;
+    refreshScripture();
+    try {
+      if (!esvApiBase) throw new Error('The ESV connection is still being set up.');
+      const target = new URL('/study', esvApiBase);
+      target.searchParams.set('id', id);
+      const response = await fetch(target, {cache:'no-store',signal:AbortSignal.timeout(45000)});
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'ESV passages are temporarily unavailable. Please try again.');
+      if (result.study !== id || result.translation !== 'ESV' || !result.readings) throw new Error('ESV passages could not be read. Please try again.');
+      for (const step of state.study.steps.filter(step => step.kind === 'discussion')) {
+        for (const ref of step.refs) if (typeof result.readings[ref.replaceAll('–', '-')]?.html !== 'string') throw new Error('ESV returned an incomplete study. Please try again.');
+      }
+      if (state.esv === pending) pending.readings = result.readings;
+    } catch (error) {
+      if (state.esv === pending) pending.error = navigator.onLine ? error.message : 'Your study is available offline. Reconnect to load ESV passages.';
+    } finally {
+      if (state.esv === pending) {
+        pending.loading = false;
+        refreshScripture();
+      }
+    }
   }
 
   function applyFocus() {
@@ -131,7 +193,7 @@
     $('keep-together').checked = state.together;
     $('study-status').hidden = true;
     if (discussion) {
-      $('study-content').innerHTML = `<details id="reading-pane" data-pane="read"><summary>Scripture</summary>${renderReadings(step.refs)}</details><details id="discussion-pane" data-pane="discuss"><summary>Discussion</summary><p>${esc(step.question)}</p></details><details id="host-pane" data-pane="host"><summary>Host Guidance</summary><p>${esc(step.guidance)}</p></details>`;
+      $('study-content').innerHTML = `<details id="reading-pane" data-pane="read"><summary>Scripture</summary><div class="scripture-body">${renderReadings(step.refs)}</div></details><details id="discussion-pane" data-pane="discuss"><summary>Discussion</summary><p>${esc(step.question)}</p></details><details id="host-pane" data-pane="host"><summary>Host Guidance</summary><p>${esc(step.guidance)}</p></details>`;
       applyFocus();
       $('study-content').querySelectorAll('details').forEach(pane => pane.querySelector('summary').addEventListener('click', event => {
         event.preventDefault();
@@ -155,7 +217,7 @@
     $('previous-section').disabled = index === 0;
     $('next-section').disabled = index === state.study.steps.length - 1;
     $('next-section-name').textContent = state.study.steps[index + 1] ? `Up next: ${state.study.steps[index + 1].title}` : 'End of guide';
-    $('study-source').textContent = `${displayDate(state.study.date)}${discussion ? ' · World English Bible · Public domain' : ''}`;
+    $('study-source').innerHTML = `${esc(displayDate(state.study.date))}${discussion ? ' · <a href="https://www.esv.org/" target="_blank" rel="noopener noreferrer">English Standard Version (ESV)</a>' : ''}`;
     state.preferences.progress[state.study.id] = {section: step.id, title: step.title};
     savePreferences();
   }
@@ -204,6 +266,7 @@
         state.study = study;
         state.entry = entry;
         state.together = false;
+        state.esv = {study:id,readings:null,loading:false,error:''};
       } else if ($('study-view').hidden) {
         state.together = false;
       }
@@ -212,6 +275,7 @@
       resetSection(state.study.steps.some(step => step.id === requestedSection) ? requestedSection : firstReading(state.study));
       history.replaceState(null, '', studyLink(id, state.section));
       renderStudy();
+      if (!state.esv.readings && !state.esv.loading) loadScripture();
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(registration => registration.active?.postMessage({type: 'SAVE_STUDY', paths: [entry.file, entry.cover]})).catch(() => {});
       }
@@ -236,17 +300,18 @@
     const next = state.study.steps[state.study.steps.indexOf(current()) + 1];
     if (next) goToSection(next.id);
   });
-  $('bible-version').addEventListener('change', () => {
-    state.preferences.bibleVersion = $('bible-version').value;
-    $('bible-version').title = translations.find(item => item.id === state.preferences.bibleVersion).name;
-    savePreferences();
+  $('study-content').addEventListener('click', event => {
+    if (event.target.closest('[data-retry-esv]')) loadScripture();
   });
   $('study-search').addEventListener('input', renderLibrary);
   $('retry-load').addEventListener('click', loadRoute);
   window.addEventListener('hashchange', loadRoute);
   window.addEventListener('popstate', loadRoute);
   const updateConnection = () => { $('connection-status').hidden = navigator.onLine; };
-  window.addEventListener('online', updateConnection);
+  window.addEventListener('online', () => {
+    updateConnection();
+    if (state.study && !state.esv.readings && !state.esv.loading) loadScripture();
+  });
   window.addEventListener('offline', updateConnection);
   loadPreferences();
   updateConnection();

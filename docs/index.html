@@ -9,12 +9,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Bible Studies">
   <meta name="color-scheme" content="light dark">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://bible-study-esv.johnt-stanley.workers.dev; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
   <title>Bible Studies</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./assets/icon-180.png">
   <link rel="stylesheet" href="./styles.css">
+  <script src="./config.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
@@ -36,7 +37,7 @@
         <div class="place"><label for="study-location">Your place</label><span id="study-count"></span></div>
         <select id="study-location" aria-label="Go to a study section"></select>
         <progress id="study-progress" max="100" value="0" aria-label="Study progress"></progress>
-        <div class="study-tools"><span id="study-section" class="eyebrow"></span><label class="bible-label" for="bible-version">Bible<select id="bible-version" aria-label="Bible version"><option value="web">WEB</option></select></label></div>
+        <div class="study-tools"><span id="study-section" class="eyebrow"></span><span class="bible-label" title="English Standard Version">Bible: ESV</span></div>
         <nav id="focus-tabs" class="focus-tabs" aria-label="Discussion focus" hidden><button type="button" data-focus="read" aria-controls="reading-pane" aria-pressed="true">Read</button><button type="button" data-focus="discuss" aria-controls="discussion-pane" aria-pressed="false">Discuss</button></nav>
         <label id="together-label" class="together-label" hidden><input type="checkbox" id="keep-together"> Keep sections open together</label>
         <div id="study-content" class="study-content"></div>
