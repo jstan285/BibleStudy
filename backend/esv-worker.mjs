@@ -46,7 +46,7 @@ async function getPassage(reference, key) {
   for (const [name,value] of Object.entries(options)) target.searchParams.set(name,value);
   const response = await fetch(target, {headers:{Authorization:`Token ${key}`},signal:AbortSignal.timeout(12000)});
   if (!response.ok) {
-    const error = new Error(response.status === 429 ? 'ESV is receiving too many requests. Please try again in a minute.' : 'ESV passages are temporarily unavailable. Please try again.');
+    const error = new Error(response.status === 429 ? 'ESV is receiving too many requests. Please try again in a minute.' : `ESV could not load passages (HTTP ${response.status}). Please check the ESV connection.`);
     error.status = response.status === 429 ? 429 : 502;
     throw error;
   }
