@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#263749">
+  <meta name="description" content="Read Scripture, discuss together, and explore a growing library of Bible studies.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Bible Studies">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <title>Bible Studies</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/icon-180.png">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <div class="app-shell">
+    <header class="app-header">
+      <a class="brand" href="#" aria-label="Bible Studies library">BIBLE STUDIES</a>
+      <span id="connection-status" class="connection-status" role="status" hidden>Offline</span>
+    </header>
+    <main id="main-content" tabindex="-1">
+      <section id="library-view" aria-labelledby="library-title">
+        <div class="library-intro"><p class="eyebrow">WALK CLOSER. GROW TOGETHER.</p><h1 id="library-title">Your study library</h1><p>Make room for Scripture and conversation.</p></div>
+        <label id="search-label" class="search-label" hidden>Find a study<input id="study-search" type="search" placeholder="Title, series, or passage" autocomplete="off"></label>
+        <div id="study-list" class="study-list" aria-live="polite"><p>Loading studies…</p></div>
+        <details class="install-help"><summary>Add to your Home Screen</summary><p>On iPhone, open this page in Safari, choose Share, then Add to Home Screen. If offered, turn on Open as Web App.</p><p>On other devices, look for Install app or Add to Home Screen in your browser’s menu.</p></details>
+      </section>
+      <article id="study-view" class="study" aria-labelledby="study-title" hidden>
+        <div class="study-heading"><a href="#" class="back-library">← All studies</a><p id="study-series" class="eyebrow"></p><h1 id="study-title"></h1><p id="study-subtitle" class="study-subtitle"></p></div>
+        <div class="place"><label for="study-location">Your place</label><span id="study-count"></span></div>
+        <select id="study-location" aria-label="Go to a study section"></select>
+        <progress id="study-progress" max="100" value="0" aria-label="Study progress"></progress>
+        <div class="study-tools"><span id="study-section" class="eyebrow"></span><label class="bible-label" for="bible-version">Bible<select id="bible-version" aria-label="Bible version"><option value="web">WEB</option></select></label></div>
+        <nav id="focus-tabs" class="focus-tabs" aria-label="Discussion focus" hidden><button type="button" data-focus="read" aria-controls="reading-pane" aria-pressed="true">Read</button><button type="button" data-focus="discuss" aria-controls="discussion-pane" aria-pressed="false">Discuss</button></nav>
+        <label id="together-label" class="together-label" hidden><input type="checkbox" id="keep-together"> Keep sections open together</label>
+        <div id="study-content" class="study-content"></div>
+        <p id="study-status" class="study-status" role="status" hidden></p>
+        <footer class="study-footer"><nav class="move" aria-label="Study progression"><button type="button" id="previous-section">Back</button><span id="next-section-name"></span><button type="button" id="next-section">Next</button></nav><p id="study-source" class="study-source"></p></footer>
+      </article>
+      <section id="error-view" class="error-view" role="alert" hidden><h1>We couldn’t open this study</h1><p id="error-message"></p><button type="button" id="retry-load">Try again</button><a href="#">Back to the library</a></section>
+    </main>
+    <p id="storage-notice" class="notice" role="status" hidden>Your browser couldn’t save your place. You can still use the study.</p>
+    <noscript><p>Please enable JavaScript to open the interactive studies.</p></noscript>
+  </div>
+</body>
+</html>
