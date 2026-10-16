@@ -22,7 +22,7 @@ Use a unique, permanent lowercase ID. File and image paths are relative to the w
 
 ## Study file
 
-Copy the top-level structure of `docs/studies/make-way-2026-10-11.json`: `schemaVersion`, `id`, `title`, `series`, `date`, `passage`, `cover`, `steps`, and `readings`.
+Copy the top-level structure of `docs/studies/make-way-2026-10-11.json`: `schemaVersion`, `id`, `title`, `series`, `date`, `passage`, `cover`, and `steps`.
 
 Each step needs a unique `id`, a navigation `title`, a display `section`, and a `kind`:
 
@@ -32,20 +32,22 @@ Each step needs a unique `id`, a navigation `title`, a display `section`, and a 
 
 All material is available in one guide. Host Guidance is always optional and collapsed when entering a discussion. There is no host/participant role field.
 
-## Bundled Scripture
+## Scripture references
 
-For the current WEB reader, every reference must have an entry under `readings`. Convert en dashes in reference keys to plain hyphens, for example `Genesis 3:1-8`. Each entry contains:
+The converter exports references only. The app loads ESV passages through the private Cloudflare connection when the study opens. Do not bundle ESV text or API credentials into public files.
 
 ```json
 {
-  "reference": "Genesis 3:1-8",
-  "translation_id": "web",
-  "translation_name": "World English Bible",
-  "translation_note": "Public Domain",
-  "verses": [
-    {"book_id": "GEN", "book_name": "Genesis", "chapter": 3, "verse": 1, "text": "The exact verse text."}
-  ]
+  "id": "word-1",
+  "kind": "discussion",
+  "title": "First discussion",
+  "section": "The Word",
+  "refs": ["Genesis 3:1-8", "Romans 5:12"],
+  "question": "The discussion question.",
+  "guidance": "Optional host guidance."
 }
 ```
 
-Include each verse in the requested range, with its actual number and complete wording. The supplied first study demonstrates all 11 passage ranges. Bundled readings currently provide immediate and offline access. A later YouVersion adapter can use the same passage references to request the selected translation; no YouVersion credentials belong in these public files.
+Use full book names and single-chapter ranges, such as `Genesis 3:1-8`. Split a reference that spans chapters into separate entries. The backend supports up to 30 distinct ranges, up to 450 requested verses in one study, and fewer than half the verses of any one book. The conservative margin keeps studies below Crossway's published quotation limits. Unsupported or larger studies display an error and need review before publishing.
+
+The first study demonstrates 11 ranges. Weekly additions require only reviewed metadata, guide text, references, and a cover image. Questions and guidance work offline after saving; loading ESV passages requires a connection.
