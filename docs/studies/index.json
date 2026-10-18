@@ -2,6 +2,15 @@
   "schemaVersion": 1,
   "studies": [
     {
+      "id": "make-way-2026-10-18",
+      "title": "A Heart Willing to Give",
+      "series": "Make Way",
+      "date": "2026-10-18",
+      "passage": "Exodus 35:4 - 36:7",
+      "cover": "assets/make-way-2026-10-18.jpg",
+      "file": "studies/make-way-2026-10-18.json"
+    },
+    {
       "id": "make-way-2026-10-11",
       "title": "What We Were Made For",
       "series": "Make Way",
