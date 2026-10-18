@@ -212,7 +212,12 @@
     } else if (step.kind === 'cover') {
       $('study-content').innerHTML = `<img class="study-cover" src="${esc(localURL(state.study.cover).href)}" alt="${esc(state.study.series)} cover">`;
     } else {
-      $('study-content').innerHTML = (step.paragraphs || []).map(text => `<p>${esc(text)}</p>`).join('') + (step.items ? `<ul>${step.items.map(text => `<li>${esc(text)}</li>`).join('')}</ul>` : '');
+      let videoLink = '';
+      try {
+        const video = new URL(step.videoUrl);
+        if (['https:', 'http:'].includes(video.protocol) && !video.username && !video.password) videoLink = `<p><a class="video-link" href="${esc(video.href)}" target="_blank" rel="noopener noreferrer">Watch the video ↗</a></p>`;
+      } catch { }
+      $('study-content').innerHTML = videoLink + (step.paragraphs || []).map(text => `<p>${esc(text)}</p>`).join('') + (step.items ? `<ul>${step.items.map(text => `<li>${esc(text)}</li>`).join('')}</ul>` : '');
     }
     $('previous-section').disabled = index === 0;
     $('next-section').disabled = index === state.study.steps.length - 1;
